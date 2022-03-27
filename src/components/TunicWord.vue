@@ -1,18 +1,24 @@
 <template>
   <canvas ref="canvas" :width="size.width" :height="size.height"
-    @mousemove="e => highlight = { x: e.offsetX, y: e.offsetY }"
+    @mousemove="e => !disabled && (highlight = { x: e.offsetX, y: e.offsetY })"
     @mouseleave="highlight = null"
-    @click="e => toggle(e.offsetX, e.offsetY)" />
+    @click="e => !disabled && toggle(e.offsetX, e.offsetY)" />
 </template>
 
 <script>
 import Glyph from '../tunic/glyph'
 
 const PADDING = 2
-const SCALE = 1.5
 
 export default {
-  props: ['word'],
+  props: {
+    word: String,
+    disabled: Boolean,
+    scale: {
+      type: Number,
+      default: 1.5
+    }
+  },
 
   data () {
     return {
@@ -23,7 +29,7 @@ export default {
   computed: {
     size () {
       const rawSize = Glyph.wordSize(this.word)
-      const f = x => (x + 2 * PADDING) * SCALE
+      const f = x => (x + 2 * PADDING) * this.scale
       return { width: f(rawSize.width), height: f(rawSize.height) }
     },
 
@@ -53,7 +59,7 @@ export default {
       }
       ctx.save()
       ctx.lineWidth = 2
-      ctx.scale(SCALE, SCALE)
+      ctx.scale(this.scale, this.scale)
       ctx.translate(PADDING, PADDING)
       f(ctx)
       ctx.restore()
@@ -62,6 +68,10 @@ export default {
 
   watch: {
     word () {
+      this.$nextTick(() => this.draw())
+    },
+
+    size () {
       this.$nextTick(() => this.draw())
     },
 

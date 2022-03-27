@@ -15,6 +15,7 @@
           :options="{
             automaticLayout: true,
             scrollBeyondLastLine: false,
+            wordBasedSuggestions: false,
             wordWrap: 'on'
           }"
           :value="code" @change="value => code = value"
@@ -22,7 +23,7 @@
       </div>
     </div>
     <div class="rendered pure-u-1 pure-u-lg-1-2">
-      <TunicRenderer :node="markdownAst" @change="ast => updateCode(ast)" />
+      <TunicRenderer :node="markdownAst" :definitions="definitions" @change="ast => updateCode(ast)" />
     </div>
   </div>
 </template>
@@ -31,6 +32,8 @@
 import MonacoEditor from 'monaco-editor-vue3'
 import TunicRenderer from './components/TunicRenderer.vue'
 import { remark } from 'remark'
+import { visit } from 'unist-util-visit'
+import * as monaco from 'monaco-editor'
 
 const LOCAL_STORAGE_CODE_KEY = 'tunic-code'
 
@@ -52,6 +55,14 @@ export default {
   computed: {
     markdownAst () {
       return remark().parse(this.code)
+    },
+
+    definitions () {
+      const result = {}
+      visit(this.markdownAst, 'definition', node => {
+        result[node.label] = node.url
+      })
+      return result
     }
   },
 
@@ -65,6 +76,32 @@ export default {
     code () {
       localStorage.setItem(LOCAL_STORAGE_CODE_KEY, this.code)
     }
+  },
+
+  mounted () {
+    console.log('mounted')
+    console.log(monaco.languages.getLanguages())
+    monaco.languages.registerCompletionItemProvider('markdown', {
+      provideCompletionItems: (model, position) => {
+        console.log('completion')
+        const word = model.getWordUntilPosition(position)
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          ...word
+        }
+        const suggestions = []
+        for (const glyph of Object.keys(this.definitions)) {
+          suggestions.push({
+            label: this.definitions[glyph],
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: '`' + glyph + '`',
+            range
+          })
+        }
+        return { suggestions }
+      }
+    })
   }
 }
 </script>

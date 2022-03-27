@@ -13,6 +13,7 @@
     "monaco-editor-vue3": "^0.1.5",
     "purecss": "^2.1.0",
     "remark": "^14.0.2",
+    "unist-util-visit": "^4.1.0",
     "vue": "^3.2.13",
     "wu": "^2.1.0"
   },

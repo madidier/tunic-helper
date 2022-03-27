@@ -1,15 +1,23 @@
 <template>
   <component v-if="render.container" :is="render.container">
     <TunicRenderer v-for="(child, index) of node.children"
-      :key="index" :node="child"
+      :key="index" :node="child" :definitions="definitions"
       @change="c => updateChild(index, c)" />
   </component>
   <component v-else-if="render.single" :is="render.single" />
   <template v-else-if="render.text">{{ render.text }}</template>
   <TunicRenderer v-else-if="render.container === ''" v-for="(child, index) of node.children"
-    :key="index" :node="child"
+    :key="index" :node="child" :definitions="definitions"
     @change="c => updateChild(index, c)" />
-  <TunicWord v-else-if="render.glyphs" :word="render.glyphs" @change="w => updateValue(w)" />
+  <TunicWord v-else-if="render.glyphs"
+    :word="render.glyphs" :scale="scale"
+    @mouseenter="scale = 1.5" @mouseleave="scale = 1"
+    @change="w => updateValue(w)"
+    />
+  <span class="known" v-else-if="render.known">{{ render.known }}</span>
+  <p v-else-if="render.defn">
+    <TunicWord :word="render.defn" disabled :scale="1" />: {{ render.value }}
+  </p>
   <pre v-else-if="render.code">{{ node.value }}</pre>
   <span v-else-if="render.warn" class="warn">{{ render.warn }}</span>
 </template>
@@ -21,8 +29,14 @@ export default {
   components: {
     TunicWord
   },
-  props: ['node'],
+  props: ['node', 'definitions'],
   emits: ['change'],
+
+  data () {
+    return {
+      scale: 1
+    }
+  },
 
   computed: {
     render () {
@@ -71,11 +85,17 @@ export default {
         case 'strong':
           return { container: 'strong' }
 
-        case 'inlineCode':
-          return { glyphs: this.node.value }
+        case 'inlineCode': {
+          const glyphs = this.node.value
+          const known = this.definitions[glyphs]
+          return known ? { known } : { glyphs }
+        }
 
         case 'break':
           return { single: 'br' }
+
+        case 'definition':
+          return { defn: this.node.label, value: this.node.url }
 
         default:
           return { warn: `Unsupported content (${this.node.type})` }
@@ -90,7 +110,7 @@ export default {
 
     updateChild (index, value) {
       const children = this.node.children.slice()
-      children.splice(index, 1, value)
+      children[index] = value
       this.$emit('change', { ...this.node, children })
     }
   }
@@ -100,6 +120,10 @@ export default {
 <style scoped>
 .warn {
   color: red;
+  background-color: lightyellow;
+}
+
+.known {
   background-color: lightyellow;
 }
 </style>
