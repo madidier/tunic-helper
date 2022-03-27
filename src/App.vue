@@ -11,15 +11,7 @@
   <div class="pure-g main">
     <div class="pure-u-1 pure-u-lg-1-2">
       <div class="editor-wrapper">
-        <MonacoEditor language="markdown"
-          :options="{
-            automaticLayout: true,
-            scrollBeyondLastLine: false,
-            wordBasedSuggestions: false,
-            wordWrap: 'on'
-          }"
-          :value="code" @change="value => code = value"
-          />
+        <MonacoEditor :value="code" @change="value => code = value" />
       </div>
     </div>
     <div class="rendered pure-u-1 pure-u-lg-1-2">
@@ -29,7 +21,7 @@
 </template>
 
 <script>
-import MonacoEditor from 'monaco-editor-vue3'
+import MonacoEditor from './components/MonacoEditor.vue'
 import TunicRenderer from './components/TunicRenderer.vue'
 import { remark } from 'remark'
 import { visit } from 'unist-util-visit'
@@ -79,11 +71,8 @@ export default {
   },
 
   mounted () {
-    console.log('mounted')
-    console.log(monaco.languages.getLanguages())
     monaco.languages.registerCompletionItemProvider('markdown', {
       provideCompletionItems: (model, position) => {
-        console.log('completion')
         const word = model.getWordUntilPosition(position)
         const range = {
           startLineNumber: position.lineNumber,
