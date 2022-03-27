@@ -10,11 +10,11 @@
     :key="index" :node="child" :definitions="definitions"
     @change="c => updateChild(index, c)" />
   <TunicWord v-else-if="render.glyphs"
-    :word="render.glyphs" :scale="scale"
-    @mouseenter="scale = 1.5" @mouseleave="scale = 1"
+    :word="render.glyphs" :scale="hover ? 1.5 : 1"
+    @mouseenter="hover = true" @mouseleave="hover = false"
     @change="w => updateValue(w)"
     />
-  <span class="known" v-else-if="render.known">{{ render.known }}</span>
+  <span class="known" v-else-if="render.known" @mouseenter="hover = true">{{ render.known }}</span>
   <p v-else-if="render.defn">
     <TunicWord :word="render.defn" disabled :scale="1" />: {{ render.value }}
   </p>
@@ -34,7 +34,7 @@ export default {
 
   data () {
     return {
-      scale: 1
+      hover: false
     }
   },
 
@@ -87,7 +87,7 @@ export default {
 
         case 'inlineCode': {
           const glyphs = this.node.value
-          const known = this.definitions[glyphs]
+          const known = !this.hover && this.definitions[glyphs]
           return known ? { known } : { glyphs }
         }
 
