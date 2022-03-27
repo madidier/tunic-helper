@@ -57,6 +57,8 @@ export default {
       '[xxbb]: foobar',
       'Once you\'ve defined a word, you may record it faster by using the code editor\' completion feature (try typing foobar, then enter or tab)',
       'Content is saved in your browser local storage as you type.',
+      '## And *lastly*,',
+      '**this** is ___markdown___ :)',
       ''
     ].join('\n\n')
     return {
