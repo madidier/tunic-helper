@@ -2,19 +2,30 @@
   <div class="pure-menu pure-menu-horizontal">
     <span class="pure-menu-heading">Glyph Helper</span>
     <ul class="pure-menu-list">
-      <li class="pure-menu-item"><a class="pure-menu-link">Input</a></li>
-      <li class="pure-menu-item"><a class="pure-menu-link">Rendered</a></li>
-      <li class="pure-menu-item"><a class="pure-menu-link">Vocabulary</a></li>
-      <li class="pure-menu-item"><a class="pure-menu-link">All</a></li>
+      <li class="pure-menu-item" :class="{ 'pure-menu-selected': currentView === 'show-input' }">
+        <a class="pure-menu-link" href="#" @click="currentView='show-input'">
+          Input
+        </a>
+      </li>
+      <li class="pure-menu-item" :class="{ 'pure-menu-selected': currentView === 'show-rendered' }">
+        <a class="pure-menu-link" href="#" @click="currentView='show-rendered'">
+          Rendered
+        </a>
+      </li>
+      <li class="pure-menu-item" :class="{ 'pure-menu-selected': currentView === 'show-both' }">
+        <a class="pure-menu-link" href="#" @click="currentView='show-both'">
+          Both
+        </a>
+      </li>
     </ul>
   </div>
-  <div class="pure-g main">
-    <div class="pure-u-1 pure-u-lg-1-2">
+  <div class="pure-g main" :class="currentView">
+    <div class="input pure-u-1" :class="{ 'pure-u-lg-1-2': currentView === 'show-both' }">
       <div class="editor-wrapper">
         <MonacoEditor :value="code" @change="value => code = value" />
       </div>
     </div>
-    <div class="rendered pure-u-1 pure-u-lg-1-2">
+    <div class="rendered pure-u-1" :class="{ 'pure-u-lg-1-2': currentView === 'show-both' }">
       <TunicRenderer :node="markdownAst" :definitions="definitions" @change="ast => updateCode(ast)" />
     </div>
   </div>
@@ -37,10 +48,20 @@ export default {
   },
 
   data () {
-    const code = localStorage.getItem(LOCAL_STORAGE_CODE_KEY) ||
-      'Here\'s an empty glyph: `AA`.\n\nHere\'s a two-glyphs word: `V4Qc`\n\nYou can edit glyphs by clicking on their visualisation.'
+    const code = localStorage.getItem(LOCAL_STORAGE_CODE_KEY) || [
+      'Here\'s an empty glyph: `AA`',
+      'Here\'s a two glyphs word: `V4Qc`',
+      'You can edit glyphs by clicking on their visualization.',
+      'Here\'s a word you think you\'ve figured out: `xxbb`.',
+      'It shows up as "foobar" because you\'ve written the definition as follows:',
+      '[xxbb]: foobar',
+      'Once you\'ve defined a word, you may record it faster by using the code editor\' completion feature (try typing foobar, then enter or tab)',
+      'Content is saved in your browser local storage as you type.',
+      ''
+    ].join('\n\n')
     return {
-      code
+      code,
+      currentView: 'show-both'
     }
   },
 
@@ -130,6 +151,15 @@ export default {
 
 .rendered {
   overflow: auto;
+}
+
+.input, .rendered {
+  display: none;
+}
+
+.show-input .input, .show-both .input,
+.show-rendered .rendered, .show-both .rendered {
+  display: unset;
 }
 
 </style>
