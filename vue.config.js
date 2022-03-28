@@ -2,6 +2,7 @@ const { defineConfig } = require('@vue/cli-service')
 const MonacoEditorPlugin = require('monaco-editor-webpack-plugin')
 
 module.exports = defineConfig({
+  publicPath: process.env.NODE_ENV === 'production' ? '/tunic-helper/' : '/',
   transpileDependencies: true,
   configureWebpack: {
     plugins: [
