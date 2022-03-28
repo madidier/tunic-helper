@@ -22,10 +22,10 @@
   <div class="pure-g main" :class="currentView">
     <div class="input pure-u-1" :class="{ 'pure-u-lg-1-2': currentView === 'show-both' }">
       <div class="editor-wrapper">
-        <MonacoEditor :value="code" @change="value => code = value" @scrollTopChange="line => $refs.renderer.scrollToLine(line)" />
+        <MonacoEditor :value="code" @change="value => code = value" @scrollTopChange="line => scrollRenderer(line)" ref="editor" />
       </div>
     </div>
-    <div class="rendered pure-u-1" :class="{ 'pure-u-lg-1-2': currentView === 'show-both' }">
+    <div class="rendered pure-u-1" :class="{ 'pure-u-lg-1-2': currentView === 'show-both' }" ref="rendererContainer">
       <TunicRenderer :node="markdownAst" :definitions="definitions" ref="renderer" @change="ast => updateCode(ast)" />
     </div>
   </div>
@@ -39,6 +39,11 @@ import { visit } from 'unist-util-visit'
 import * as monaco from 'monaco-editor'
 
 const LOCAL_STORAGE_CODE_KEY = 'tunic-code'
+
+// prevent synchronized scrolls from getting into a feedback loop
+// this object may hold one of two witness fields to prevent
+// alternatively one component from scrolling or the other
+const scrollDebounce = {}
 
 export default {
   name: 'App',
@@ -84,6 +89,30 @@ export default {
   methods: {
     updateCode (ast) {
       this.code = remark().stringify(ast)
+    },
+
+    scrollEditor (line) {
+      if (!scrollDebounce.editor) {
+        if (scrollDebounce.renderer) {
+          clearTimeout(scrollDebounce.renderer)
+        }
+        scrollDebounce.renderer = setTimeout(() => {
+          scrollDebounce.renderer = null
+        }, 100)
+        this.$refs.editor.revealLine(line)
+      }
+    },
+
+    scrollRenderer (line) {
+      if (!scrollDebounce.renderer) {
+        if (scrollDebounce.editor) {
+          clearTimeout(scrollDebounce.editor)
+        }
+        scrollDebounce.editor = setTimeout(() => {
+          scrollDebounce.editor = null
+        }, 100)
+        this.$refs.renderer.scrollToLine(line)
+      }
     }
   },
 
@@ -112,6 +141,21 @@ export default {
           })
         }
         return { suggestions }
+      }
+    })
+
+    let ticking = false
+    this.$refs.rendererContainer.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          this.scrollEditor(
+            this.$refs.renderer.queryFirstLineVisibleIn(
+              this.$refs.rendererContainer.getBoundingClientRect()
+            )
+          )
+          ticking = false
+        })
+        ticking = true
       }
     })
   }

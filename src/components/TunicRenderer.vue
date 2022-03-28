@@ -132,6 +132,38 @@ export default {
         // Fallback to the last child
         this.$refs.children[this.$refs.children.length - 1].scrollToLine(line)
       }
+    },
+
+    // FIXME: This code is clumsy and might be unnecessarily inefficient
+    queryFirstLineVisibleIn (rect) {
+      // Same invariants as in the scrollToLine method
+      if (this.$refs.self) {
+        return this.node.position.start.line
+      } else if (this.$refs.children) {
+        for (const child of this.$refs.children) {
+          if (child.isVisibleInRect(rect)) {
+            return child.queryFirstLineVisibleIn(rect)
+          }
+        }
+        // Fallback
+        return this.$refs.children[this.$refs.children.length - 1].queryFirstLineVisibleIn(rect)
+      }
+    },
+
+    isVisibleInRect (rect) {
+      // Same invariants as in the scrollToLine method
+      if (this.$refs.self) {
+        const selfRect = this.$refs.self.getBoundingClientRect()
+        // Only the vertical axis check is really necessary, and we don't
+        // care if the element is not visible because it is past the end of
+        // the viewport.
+        return selfRect.bottom > rect.top
+      } else if (this.$refs.children) {
+        return this.$refs.children.some(child => child.isVisibleInRect(rect))
+      }
+
+      // Looks like we are not being rendered for some reason *shrug*
+      debugger
     }
   }
 }

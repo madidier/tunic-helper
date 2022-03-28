@@ -47,6 +47,12 @@ watch(() => props.value, () => {
   }
 })
 
+const revealLine = line => {
+  editor.revealLineNearTop(line)
+}
+/* global defineExpose */
+defineExpose({ revealLine })
+
 </script>
 
 <style scoped>
