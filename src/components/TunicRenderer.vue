@@ -1,25 +1,26 @@
 <template>
   <component v-if="render.container" :is="render.container">
     <TunicRenderer v-for="(child, index) of node.children"
-      :key="index" :node="child" :definitions="definitions"
+      :key="index" :node="child" :definitions="definitions" ref="children"
       @change="c => updateChild(index, c)" />
   </component>
-  <component v-else-if="render.single" :is="render.single" />
-  <template v-else-if="render.text">{{ render.text }}</template>
+  <component v-else-if="render.single" :is="render.single" ref="self" />
+  <span v-else-if="render.text" ref="self">{{ render.text }}</span>
   <TunicRenderer v-else-if="render.container === ''" v-for="(child, index) of node.children"
-    :key="index" :node="child" :definitions="definitions"
+    :key="index" :node="child" :definitions="definitions" ref="children"
     @change="c => updateChild(index, c)" />
-  <TunicWord v-else-if="render.glyphs"
-    :word="render.glyphs" :scale="hover ? 1.5 : 1"
-    @mouseenter="hover = true" @mouseleave="hover = false"
-    @change="w => updateValue(w)"
-    />
-  <span class="known" v-else-if="render.known" @mouseenter="hover = true">{{ render.known }}</span>
+  <span v-else-if="render.glyphs" ref="self">
+    <TunicWord :word="render.glyphs" :scale="hover ? 1.5 : 1"
+      @mouseenter="hover = true" @mouseleave="hover = false"
+      @change="w => updateValue(w)"
+      />
+  </span>
+  <span class="known" v-else-if="render.known" @mouseenter="hover = true" ref="self">{{ render.known }}</span>
   <p v-else-if="render.defn">
-    <TunicWord :word="render.defn" disabled :scale="1" />: {{ render.value }}
+    <TunicWord :word="render.defn" disabled :scale="1" ref="self" />: {{ render.value }}
   </p>
-  <pre v-else-if="render.code">{{ node.value }}</pre>
-  <span v-else-if="render.warn" class="warn">{{ render.warn }}</span>
+  <pre v-else-if="render.code" ref="self">{{ node.value }}</pre>
+  <span v-else-if="render.warn" class="warn" ref="self">{{ render.warn }}</span>
 </template>
 
 <script>
@@ -112,6 +113,25 @@ export default {
       const children = this.node.children.slice()
       children[index] = value
       this.$emit('change', { ...this.node, children })
+    },
+
+    scrollToLine (line) {
+      if (this.$refs.self) {
+        // Invariant: self refs are regular HTML `Element`s
+        this.$refs.self.scrollIntoView()
+      } else if (this.$refs.children) {
+        // Assume ast nodes are ordered in a strictly ascending order
+        // Also, the invariant that all children are `TunicRenderer`s should be maintained
+        for (let i = 0; i < this.$refs.children.length; ++i) {
+          // First node whose end is past the target line gets selected
+          if (this.node.children[i].position.end.line >= line) {
+            this.$refs.children[i].scrollToLine(line)
+            return
+          }
+        }
+        // Fallback to the last child
+        this.$refs.children[this.$refs.children.length - 1].scrollToLine(line)
+      }
     }
   }
 }

@@ -22,11 +22,11 @@
   <div class="pure-g main" :class="currentView">
     <div class="input pure-u-1" :class="{ 'pure-u-lg-1-2': currentView === 'show-both' }">
       <div class="editor-wrapper">
-        <MonacoEditor :value="code" @change="value => code = value" />
+        <MonacoEditor :value="code" @change="value => code = value" @scrollTopChange="line => $refs.renderer.scrollToLine(line)" />
       </div>
     </div>
     <div class="rendered pure-u-1" :class="{ 'pure-u-lg-1-2': currentView === 'show-both' }">
-      <TunicRenderer :node="markdownAst" :definitions="definitions" @change="ast => updateCode(ast)" />
+      <TunicRenderer :node="markdownAst" :definitions="definitions" ref="renderer" @change="ast => updateCode(ast)" />
     </div>
   </div>
 </template>

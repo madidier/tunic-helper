@@ -8,7 +8,7 @@ import * as monaco from 'monaco-editor'
 
 /* global defineProps, defineEmits */
 const props = defineProps(['value'])
-const emit = defineEmits(['change'])
+const emit = defineEmits(['change', 'scrollTopChange'])
 const editorContainer = ref(null)
 let editor = null
 
@@ -26,6 +26,12 @@ onMounted(() => {
     const value = editor.getValue()
     if (value !== props.value) {
       emit('change', value)
+    }
+  })
+
+  editor.onDidScrollChange(e => {
+    if (e.scrollTopChanged) {
+      emit('scrollTopChange', editor.getVisibleRanges()[0].startLineNumber)
     }
   })
 })
