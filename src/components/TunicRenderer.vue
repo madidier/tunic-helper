@@ -16,8 +16,8 @@
       />
   </span>
   <span class="known" v-else-if="render.known" @mouseenter="hover = true" ref="self">{{ render.known }}</span>
-  <p v-else-if="render.defn">
-    <TunicWord :word="render.defn" disabled :scale="1" ref="self" />: {{ render.value }}
+  <p v-else-if="render.defn" ref="self">
+    <TunicWord :word="render.defn" disabled :scale="1" />: {{ render.value }}
   </p>
   <pre v-else-if="render.code" ref="self">{{ node.value }}</pre>
   <span v-else-if="render.warn" class="warn" ref="self">{{ render.warn }}</span>
