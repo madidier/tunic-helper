@@ -46,16 +46,29 @@ const scrollDebounce = {}
 
 const LOCAL_STORAGE_CODE_KEY = 'tunic-code'
 const code = ref(localStorage.getItem(LOCAL_STORAGE_CODE_KEY) || [
-  'Here\'s an empty glyph: `AA`',
-  'Here\'s a two glyphs word: `V4Qc`',
-  'You can edit glyphs by clicking on their visualization.',
-  'Here\'s a word you think you\'ve figured out: `xxbb`.',
-  'It shows up as "foobar" because you\'ve written the definition as follows:',
+  '# Tutorial',
+  'Here\'s a one-glyph blank Tunic word: `AA`',
+  'Here\'s a two-glyphs Tunic word: `V4Qc`',
+  'You can edit a Tunic word or make it bigger by clicking on its visualization in the right panel. Try editing the word above.',
+  'Notice that you can create blank words by repeating the A letter between backquotes inside the left panel. Try typing a three-glyph blank word here:',
+  'Here\'s a Tunic word you think you\'ve figured out: `xxbb`.',
+  'It shows up as "foobar" because you\'ve written its definition as follows (look on the left panel):',
   '[xxbb]: foobar',
-  'Once you\'ve defined a word, you may record it faster by using the code editor\' completion feature (try typing foobar, then enter or tab)',
-  'Content is saved in your browser local storage as you type.',
-  '## And *lastly*,',
-  '**this** is ___markdown___ :)',
+  'Notice that the Tunic word is uniquely represented by the series of letters "xxbb"',
+  'You can still edit that word by clicking on it as you would on glyphs. Try it here: `xxbb`',
+  'You can also cycle through Tunic words in your manuscript by using tab or shift+tab after you\'ve clicked on the first word in a sequence on the right panel.',
+  'Try it here: `Tm` `V4Qc` `iu` `DkLos/` (it\'s probably gibberish)',
+  'Once you\'ve defined and memorized a Tunic word, you may type it faster by using the code editor\' completion feature (try typing "foo", then enter or tab):',
+  'Content is automatically saved in your browser local storage as you type. I would still advise you to make backups.',
+  '# You can have titles',
+  '## Subtitles',
+  '### Sub-subtitles and so on...',
+  '*   You may use...',
+  '*   ...lists',
+  'And have stuff in *italics*, **bold**, ***or both***',
+  'You may use a horizontal separator:',
+  '***',
+  'And if you ever want to see this text again, just delete all the text and refresh the page to start over.',
   ''
 ].join('\n\n'))
 watch(code, () => localStorage.setItem(LOCAL_STORAGE_CODE_KEY, code.value))
