@@ -16,7 +16,9 @@
     @change="c => updateChild(index, c)" />
   <span v-else-if="render.glyphs" ref="self" tabindex="0"
     @blur="focus = false" @focus="focus = true">
-    <TunicWord :word="render.glyphs" :scale="focus ? 1.5 : 1" :disabled="!focus"
+    <!-- the :key attribute keeps click events from misfiring when clicking on a word to focus it.
+         it forces Vue.js to recreate a new DOM canvas so that the mousedown and mouseup events happen on distinct elements -->
+    <TunicWord :word="render.glyphs" :scale="focus ? 2 : 1" :disabled="!focus" :key="focus ? 'focused-word' : 'blured-word'"
       @change="w => updateValue(w)"
       />
   </span>
