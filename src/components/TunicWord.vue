@@ -5,85 +5,67 @@
     @click="e => !disabled && toggle(e.offsetX, e.offsetY)" />
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import Glyph from '../tunic/glyph'
 
 const PADDING = 2
 
-export default {
-  props: {
-    word: String,
-    disabled: Boolean,
-    scale: {
-      type: Number,
-      default: 1.5
-    }
-  },
+/* global defineProps, defineEmits */
+const props = defineProps({
+  word: String,
+  disabled: Boolean,
+  scale: {
+    type: Number,
+    default: 1.5
+  }
+})
+const emit = defineEmits(['change'])
 
-  data () {
-    return {
-      highlight: null
-    }
-  },
+const canvas = ref(null)
+const highlight = ref(null)
 
-  computed: {
-    size () {
-      const rawSize = Glyph.wordSize(this.word)
-      const f = x => (x + 2 * PADDING) * this.scale
-      return { width: f(rawSize.width), height: f(rawSize.height) }
-    },
+const size = computed(() => {
+  const rawSize = Glyph.wordSize(props.word)
+  const f = x => (x + 2 * PADDING) * props.scale
+  return { width: f(rawSize.width), height: f(rawSize.height) }
+})
 
-    canvasContext () {
-      return this.$refs.canvas && this.$refs.canvas.getContext('2d')
-    }
-  },
-
-  methods: {
-    draw () {
-      this.runCanvas(ctx => Glyph.draw(ctx, this.word, { highlight: this.highlight }))
-    },
-
-    toggle (x, y) {
-      this.runCanvas(ctx => {
-        const word = Glyph.toggle(ctx, this.word, { x, y })
-        if (word !== this.word) {
-          this.$emit('change', word)
-        }
-      }, false)
-    },
-
-    runCanvas (f, clear = true) {
-      const ctx = this.canvasContext
-      if (clear) {
-        ctx.clearRect(0, 0, this.size.width, this.size.height)
-      }
-      ctx.save()
-      ctx.lineWidth = 2
-      ctx.scale(this.scale, this.scale)
-      ctx.translate(PADDING, PADDING)
-      f(ctx)
-      ctx.restore()
-    }
-  },
-
-  watch: {
-    word () {
-      this.$nextTick(() => this.draw())
-    },
-
-    size () {
-      this.$nextTick(() => this.draw())
-    },
-
-    highlight () {
-      this.draw()
-    }
-  },
-
-  mounted () {
-    this.draw()
+const runCanvas = (cb, clear = true) => {
+  const ctx = canvas.value.getContext('2d')
+  if (clear) {
+    ctx.clearRect(0, 0, size.value.width, size.value.height)
+  }
+  ctx.save()
+  ctx.lineWidth = 2
+  ctx.scale(props.scale, props.scale)
+  ctx.translate(PADDING, PADDING)
+  try {
+    return cb(ctx)
+  } finally {
+    ctx.restore()
   }
 }
+
+const draw = () => {
+  runCanvas(ctx => Glyph.draw(ctx, props.word, { highlight: highlight.value }))
+}
+
+const toggle = (x, y) => {
+  const word = runCanvas(ctx => Glyph.toggle(ctx, props.word, { x, y }), false)
+  if (word !== props.word) {
+    emit('change', word)
+  }
+}
+
+// nextTick: make sure the DOM canvas' size is up to date before drawing
+watch([() => props.word, size, highlight], () => {
+  nextTick(() => {
+    // First make sure the canvas didn't get destroyed in the meanwhile
+    if (canvas.value) draw()
+  })
+})
+onMounted(draw)
 </script>
 
 <style scoped>
