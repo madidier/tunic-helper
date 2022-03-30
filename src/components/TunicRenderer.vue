@@ -1,4 +1,9 @@
 <template>
+  <!--
+    Invariants expected in the methods below:
+      - `self` refs should always be DOM `Element`s, and
+      - `children` refs should always appear in a v-for and be `TunicRenderer`s.
+  -->
   <component v-if="render.container" :is="render.container">
     <TunicRenderer v-for="(child, index) of node.children"
       :key="index" :node="child" :definitions="definitions" ref="children"
@@ -117,11 +122,9 @@ export default {
 
     scrollToLine (line) {
       if (this.$refs.self) {
-        // Invariant: self refs are regular HTML `Element`s
         this.$refs.self.scrollIntoView()
       } else if (this.$refs.children) {
         // Assume ast nodes are ordered in a strictly ascending order
-        // Also, the invariant that all children are `TunicRenderer`s should be maintained
         for (let i = 0; i < this.$refs.children.length; ++i) {
           // First node whose end is past the target line gets selected
           if (this.node.children[i].position.end.line >= line) {
@@ -136,7 +139,6 @@ export default {
 
     // FIXME: This code is clumsy and might be unnecessarily inefficient
     queryFirstLineVisibleIn (rect) {
-      // Same invariants as in the scrollToLine method
       if (this.$refs.self) {
         return this.node.position.start.line
       } else if (this.$refs.children) {
@@ -151,7 +153,6 @@ export default {
     },
 
     isVisibleInRect (rect) {
-      // Same invariants as in the scrollToLine method
       if (this.$refs.self) {
         const selfRect = this.$refs.self.getBoundingClientRect()
         // Only the vertical axis check is really necessary, and we don't
