@@ -14,13 +14,13 @@
   <TunicRenderer v-else-if="render.container === ''" v-for="(child, index) of node.children"
     :key="index" :node="child" :definitions="definitions" :ref="e => children[index] = e"
     @change="c => updateChild(index, c)" />
-  <span v-else-if="render.glyphs" ref="self">
-    <TunicWord :word="render.glyphs" :scale="hover ? 1.5 : 1"
-      @mouseenter="hover = true" @mouseleave="hover = false"
+  <span v-else-if="render.glyphs" ref="self" tabindex="0"
+    @blur="focus = false" @focus="focus = true">
+    <TunicWord :word="render.glyphs" :scale="focus ? 1.5 : 1" :disabled="!focus"
       @change="w => updateValue(w)"
       />
   </span>
-  <span class="known" v-else-if="render.known" @mouseenter="hover = true" ref="self">{{ render.known }}</span>
+  <span class="known" v-else-if="render.known" @focus="onKnownFocus" ref="self" tabindex="0">{{ render.known }}</span>
   <p v-else-if="render.defn" ref="self">
     <TunicWord :word="render.defn" disabled :scale="1" />: {{ render.value }}
   </p>
@@ -29,7 +29,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import TunicWord from './TunicWord.vue'
 
 /* global defineProps, defineEmits */
@@ -41,7 +41,15 @@ const self = ref(null)
 // I should check if there is already a bug report
 const children = ref({})
 
-const hover = ref(false)
+const focus = ref(false)
+const onKnownFocus = () => {
+  focus.value = true
+  nextTick(() => {
+    if (self.value) {
+      self.value.focus()
+    }
+  })
+}
 
 const render = computed(() => {
   // See https://github.com/syntax-tree/mdast
@@ -91,7 +99,7 @@ const render = computed(() => {
 
     case 'inlineCode': {
       const glyphs = props.node.value
-      const known = !hover.value && props.definitions[glyphs]
+      const known = !focus.value && props.definitions[glyphs]
       return known ? { known } : { glyphs }
     }
 
