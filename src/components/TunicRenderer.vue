@@ -7,19 +7,19 @@
   <component v-if="render.container" :is="render.container">
     <TunicRenderer v-for="(child, index) of node.children"
       :key="index" :node="child" :definitions="definitions" :ref="e => children[index] = e"
-      @change="c => updateChild(index, c)" />
+      @change="forwardUpdate" />
   </component>
   <component v-else-if="render.single" :is="render.single" ref="self" />
   <span v-else-if="render.text" ref="self">{{ render.text }}</span>
   <TunicRenderer v-else-if="render.container === ''" v-for="(child, index) of node.children"
     :key="index" :node="child" :definitions="definitions" :ref="e => children[index] = e"
-    @change="c => updateChild(index, c)" />
+    @change="forwardUpdate" />
   <span v-else-if="render.glyphs" ref="self" tabindex="0"
     @blur="focus = false" @focus="focus = true">
     <!-- the :key attribute keeps click events from misfiring when clicking on a word to focus it.
          it forces Vue.js to recreate a new DOM canvas so that the mousedown and mouseup events happen on distinct elements -->
     <TunicWord :word="render.glyphs" :scale="focus ? 2 : 1" :disabled="!focus" :key="focus ? 'focused-word' : 'blured-word'"
-      @change="w => updateValue(w)"
+      @change="updateWord"
       />
   </span>
   <span class="known" v-else-if="render.known" @focus="onKnownFocus" ref="self" tabindex="0">{{ render.known }}</span>
@@ -116,12 +116,8 @@ const render = computed(() => {
   }
 })
 
-const updateValue = value => emit('change', { ...props.node, value })
-const updateChild = (index, value) => {
-  const children = props.node.children.slice()
-  children[index] = value
-  emit('change', { ...props.node, children })
-}
+const updateWord = value => emit('change', { position: props.node.position, value })
+const forwardUpdate = e => emit('change', e)
 
 const scrollToLine = line => {
   if (self.value) {

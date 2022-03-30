@@ -26,7 +26,7 @@
       </div>
     </div>
     <div class="rendered pure-u-1" :class="{ 'pure-u-lg-1-2': currentView === 'show-both' }" ref="rendererContainer">
-      <TunicRenderer :node="markdownAst" :definitions="definitions" ref="renderer" @change="ast => updateCode(ast)" />
+      <TunicRenderer :node="markdownAst" :definitions="definitions" ref="renderer" @change="applyUpdate" />
     </div>
   </div>
 </template>
@@ -89,8 +89,8 @@ const definitions = computed(() => {
   return result
 })
 
-const updateCode = ast => {
-  code.value = remark().stringify(ast)
+const applyUpdate = e => {
+  editor.value.applyUpdate({ position: e.position, value: '`' + e.value + '`' })
 }
 
 const scrollEditor = line => {

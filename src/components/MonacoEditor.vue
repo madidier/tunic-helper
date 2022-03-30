@@ -50,8 +50,21 @@ watch(() => props.value, () => {
 const revealLine = line => {
   editor.revealLineNearTop(line)
 }
+
+const applyUpdate = update => {
+  editor.executeEdits('tunic-helper', [{
+    range: {
+      startLineNumber: update.position.start.line,
+      startColumn: update.position.start.column,
+      endLineNumber: update.position.end.line,
+      endColumn: update.position.end.column
+    },
+    text: update.value
+  }])
+}
+
 /* global defineExpose */
-defineExpose({ revealLine })
+defineExpose({ revealLine, applyUpdate })
 
 </script>
 
