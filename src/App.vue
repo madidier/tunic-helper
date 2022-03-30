@@ -31,135 +31,116 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue'
 import MonacoEditor from './components/MonacoEditor.vue'
 import TunicRenderer from './components/TunicRenderer.vue'
 import { remark } from 'remark'
 import { visit } from 'unist-util-visit'
 import * as monaco from 'monaco-editor'
 
-const LOCAL_STORAGE_CODE_KEY = 'tunic-code'
-
 // prevent synchronized scrolls from getting into a feedback loop
 // this object may hold one of two witness fields to prevent
 // alternatively one component from scrolling or the other
 const scrollDebounce = {}
 
-export default {
-  name: 'App',
-  components: {
-    MonacoEditor,
-    TunicRenderer
-  },
+const LOCAL_STORAGE_CODE_KEY = 'tunic-code'
+const code = ref(localStorage.getItem(LOCAL_STORAGE_CODE_KEY) || [
+  'Here\'s an empty glyph: `AA`',
+  'Here\'s a two glyphs word: `V4Qc`',
+  'You can edit glyphs by clicking on their visualization.',
+  'Here\'s a word you think you\'ve figured out: `xxbb`.',
+  'It shows up as "foobar" because you\'ve written the definition as follows:',
+  '[xxbb]: foobar',
+  'Once you\'ve defined a word, you may record it faster by using the code editor\' completion feature (try typing foobar, then enter or tab)',
+  'Content is saved in your browser local storage as you type.',
+  '## And *lastly*,',
+  '**this** is ___markdown___ :)',
+  ''
+].join('\n\n'))
+watch(code, () => localStorage.setItem(LOCAL_STORAGE_CODE_KEY, code.value))
 
-  data () {
-    const code = localStorage.getItem(LOCAL_STORAGE_CODE_KEY) || [
-      'Here\'s an empty glyph: `AA`',
-      'Here\'s a two glyphs word: `V4Qc`',
-      'You can edit glyphs by clicking on their visualization.',
-      'Here\'s a word you think you\'ve figured out: `xxbb`.',
-      'It shows up as "foobar" because you\'ve written the definition as follows:',
-      '[xxbb]: foobar',
-      'Once you\'ve defined a word, you may record it faster by using the code editor\' completion feature (try typing foobar, then enter or tab)',
-      'Content is saved in your browser local storage as you type.',
-      '## And *lastly*,',
-      '**this** is ___markdown___ :)',
-      ''
-    ].join('\n\n')
-    return {
-      code,
-      currentView: 'show-both'
+const currentView = ref('show-both')
+
+const editor = ref()
+const rendererContainer = ref()
+const renderer = ref()
+
+const markdownAst = computed(() => remark().parse(code.value))
+
+const definitions = computed(() => {
+  const result = {}
+  visit(markdownAst.value, 'definition', node => {
+    result[node.label] = node.url
+  })
+  return result
+})
+
+const updateCode = ast => {
+  code.value = remark().stringify(ast)
+}
+
+const scrollEditor = line => {
+  if (!scrollDebounce.editor) {
+    if (scrollDebounce.renderer) {
+      clearTimeout(scrollDebounce.renderer)
     }
-  },
-
-  computed: {
-    markdownAst () {
-      return remark().parse(this.code)
-    },
-
-    definitions () {
-      const result = {}
-      visit(this.markdownAst, 'definition', node => {
-        result[node.label] = node.url
-      })
-      return result
-    }
-  },
-
-  methods: {
-    updateCode (ast) {
-      this.code = remark().stringify(ast)
-    },
-
-    scrollEditor (line) {
-      if (!scrollDebounce.editor) {
-        if (scrollDebounce.renderer) {
-          clearTimeout(scrollDebounce.renderer)
-        }
-        scrollDebounce.renderer = setTimeout(() => {
-          scrollDebounce.renderer = null
-        }, 100)
-        this.$refs.editor.revealLine(line)
-      }
-    },
-
-    scrollRenderer (line) {
-      if (!scrollDebounce.renderer) {
-        if (scrollDebounce.editor) {
-          clearTimeout(scrollDebounce.editor)
-        }
-        scrollDebounce.editor = setTimeout(() => {
-          scrollDebounce.editor = null
-        }, 100)
-        this.$refs.renderer.scrollToLine(line)
-      }
-    }
-  },
-
-  watch: {
-    code () {
-      localStorage.setItem(LOCAL_STORAGE_CODE_KEY, this.code)
-    }
-  },
-
-  mounted () {
-    monaco.languages.registerCompletionItemProvider('markdown', {
-      provideCompletionItems: (model, position) => {
-        const word = model.getWordUntilPosition(position)
-        const range = {
-          startLineNumber: position.lineNumber,
-          endLineNumber: position.lineNumber,
-          ...word
-        }
-        const suggestions = []
-        for (const glyph of Object.keys(this.definitions)) {
-          suggestions.push({
-            label: this.definitions[glyph],
-            kind: monaco.languages.CompletionItemKind.Function,
-            insertText: '`' + glyph + '`',
-            range
-          })
-        }
-        return { suggestions }
-      }
-    })
-
-    let ticking = false
-    this.$refs.rendererContainer.addEventListener('scroll', () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          this.scrollEditor(
-            this.$refs.renderer.queryFirstLineVisibleIn(
-              this.$refs.rendererContainer.getBoundingClientRect()
-            )
-          )
-          ticking = false
-        })
-        ticking = true
-      }
-    })
+    scrollDebounce.renderer = setTimeout(() => {
+      scrollDebounce.renderer = null
+    }, 100)
+    editor.value.revealLine(line)
   }
 }
+
+const scrollRenderer = line => {
+  if (!scrollDebounce.renderer) {
+    if (scrollDebounce.editor) {
+      clearTimeout(scrollDebounce.editor)
+    }
+    scrollDebounce.editor = setTimeout(() => {
+      scrollDebounce.editor = null
+    }, 100)
+    renderer.value.scrollToLine(line)
+  }
+}
+
+onMounted(() => {
+  monaco.languages.registerCompletionItemProvider('markdown', {
+    provideCompletionItems: (model, position) => {
+      const word = model.getWordUntilPosition(position)
+      const range = {
+        startLineNumber: position.lineNumber,
+        endLineNumber: position.lineNumber,
+        ...word
+      }
+      const suggestions = []
+      for (const glyph of Object.keys(definitions.value)) {
+        suggestions.push({
+          label: definitions.value[glyph],
+          kind: monaco.languages.CompletionItemKind.Function,
+          insertText: '`' + glyph + '`',
+          range
+        })
+      }
+      return { suggestions }
+    }
+  })
+
+  let ticking = false
+  rendererContainer.value.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        scrollEditor(
+          renderer.value.queryFirstLineVisibleIn(
+            rendererContainer.value.getBoundingClientRect()
+          )
+        )
+        ticking = false
+      })
+      ticking = true
+    }
+  })
+})
 </script>
 
 <style>
