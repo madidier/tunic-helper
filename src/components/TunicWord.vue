@@ -7,7 +7,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
-import Glyph from '../tunic/glyph'
+import * as Glyph from '../tunic/glyph'
 
 const PADDING = 2
 

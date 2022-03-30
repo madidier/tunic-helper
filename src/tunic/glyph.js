@@ -117,9 +117,3 @@ const wordGrouping = n => {
   path.lineTo(n * WIDTH, 15)
   return path
 }
-
-export default {
-  draw,
-  wordSize,
-  toggle
-}
