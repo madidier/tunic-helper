@@ -50,7 +50,12 @@ watch(() => props.value, () => {
 const getTopLine = () => editor.getVisibleRanges()[0].startLineNumber
 
 const revealLine = line => {
-  editor.revealLineNearTop(line)
+  editor.revealRangeAtTop({
+    startLineNumber: line,
+    startColumn: 1,
+    endLineNumber: line,
+    endColumn: 1
+  })
 }
 
 const applyUpdate = update => {
