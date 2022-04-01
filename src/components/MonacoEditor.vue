@@ -31,7 +31,7 @@ onMounted(() => {
 
   editor.onDidScrollChange(e => {
     if (e.scrollTopChanged) {
-      emit('scrollTopChange', editor.getVisibleRanges()[0].startLineNumber)
+      emit('scrollTopChange', getTopLine())
     }
   })
 })
@@ -46,6 +46,8 @@ watch(() => props.value, () => {
     editor.setValue(props.value)
   }
 })
+
+const getTopLine = () => editor.getVisibleRanges()[0].startLineNumber
 
 const revealLine = line => {
   editor.revealLineNearTop(line)
@@ -64,7 +66,7 @@ const applyUpdate = update => {
 }
 
 /* global defineExpose */
-defineExpose({ revealLine, applyUpdate })
+defineExpose({ revealLine, applyUpdate, getTopLine })
 
 </script>
 

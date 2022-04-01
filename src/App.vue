@@ -1,38 +1,43 @@
 <template>
-  <div class="pure-menu pure-menu-horizontal">
-    <span class="pure-menu-heading">Glyph Helper</span>
-    <ul class="pure-menu-list">
-      <li class="pure-menu-item" :class="{ 'pure-menu-selected': currentView === 'show-input' }">
-        <a class="pure-menu-link" href="#" @click="currentView='show-input'">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="navbar-item">Glyph Helper</div>
+      <a role="button" class="navbar-burger" :class="{ 'is-active': burgerActive }" @click="burgerActive = !burgerActive">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </a>
+    </div>
+    <div class="navbar-menu" :class="{ 'is-active': burgerActive }">
+      <div class="navbar-start">
+      </div>
+      <div class="navbar-end">
+        <a class="navbar-item is-tab" :class="{ 'is-active': currentView === 'show-input' }" href="#" @click="showInput">
           Input
         </a>
-      </li>
-      <li class="pure-menu-item" :class="{ 'pure-menu-selected': currentView === 'show-rendered' }">
-        <a class="pure-menu-link" href="#" @click="currentView='show-rendered'">
+        <a class="navbar-item is-tab" :class="{ 'is-active': currentView === 'show-rendered' }" href="#" @click="showRendered">
           Rendered
         </a>
-      </li>
-      <li class="pure-menu-item" :class="{ 'pure-menu-selected': currentView === 'show-both' }">
-        <a class="pure-menu-link" href="#" @click="currentView='show-both'">
+        <a class="navbar-item is-tab is-hidden-mobile" :class="{ 'is-active': currentView === 'show-both' }" href="#" @click="showBoth">
           Both
         </a>
-      </li>
-    </ul>
-  </div>
-  <div class="pure-g main" :class="currentView">
-    <div class="input pure-u-1" :class="{ 'pure-u-lg-1-2': currentView === 'show-both' }">
+      </div>
+    </div>
+  </nav>
+  <div class="main columns">
+    <div v-if="currentView !== 'show-rendered'" class="input-pane column" :class="{ 'is-half': currentView === 'show-both' }">
       <div class="editor-wrapper">
         <MonacoEditor :value="code" @change="value => code = value" @scrollTopChange="line => scrollRenderer(line)" ref="editor" />
       </div>
     </div>
-    <div class="rendered pure-u-1" :class="{ 'pure-u-lg-1-2': currentView === 'show-both' }" ref="rendererContainer">
+    <div v-if="currentView !== 'show-input'" class="rendered-pane column content" ref="rendererContainer" @scroll="onRendererScroll">
       <TunicRenderer :node="markdownAst" :definitions="definitions" ref="renderer" @change="applyUpdate" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import MonacoEditor from './components/MonacoEditor.vue'
 import TunicRenderer from './components/TunicRenderer.vue'
 import { remark } from 'remark'
@@ -74,6 +79,7 @@ const code = ref(localStorage.getItem(LOCAL_STORAGE_CODE_KEY) || [
 watch(code, () => localStorage.setItem(LOCAL_STORAGE_CODE_KEY, code.value))
 
 const currentView = ref('show-both')
+const burgerActive = ref(false)
 
 const editor = ref()
 const rendererContainer = ref()
@@ -93,6 +99,36 @@ const applyUpdate = e => {
   editor.value.applyUpdate({ position: e.position, value: '`' + e.value + '`' })
 }
 
+const showInput = () => {
+  currentView.value = 'show-input'
+  beforeShowInput()
+}
+
+const showRendered = () => {
+  currentView.value = 'show-rendered'
+  beforeShowRendered()
+}
+
+const showBoth = () => {
+  currentView.value = 'show-both'
+  beforeShowInput()
+  beforeShowRendered()
+}
+
+const beforeShowInput = () => {
+  const savedLine = rendererScrollPosition()
+  savedLine !== null && nextTick(() => {
+    scrollEditor(savedLine)
+  })
+}
+
+const beforeShowRendered = () => {
+  const savedLine = editor.value.getTopLine()
+  savedLine !== null && nextTick(() => {
+    scrollRenderer(savedLine)
+  })
+}
+
 const scrollEditor = line => {
   if (!scrollDebounce.editor) {
     if (scrollDebounce.renderer) {
@@ -101,7 +137,7 @@ const scrollEditor = line => {
     scrollDebounce.renderer = setTimeout(() => {
       scrollDebounce.renderer = null
     }, 100)
-    editor.value.revealLine(line)
+    editor.value && editor.value.revealLine(line)
   }
 }
 
@@ -113,7 +149,25 @@ const scrollRenderer = line => {
     scrollDebounce.editor = setTimeout(() => {
       scrollDebounce.editor = null
     }, 100)
-    renderer.value.scrollToLine(line)
+    renderer.value && renderer.value.scrollToLine(line)
+  }
+}
+
+const rendererScrollPosition = () => {
+  return renderer.value && rendererContainer.value
+    ? renderer.value.queryFirstLineVisibleIn(rendererContainer.value.getBoundingClientRect())
+    : null
+}
+
+let ticking = false
+const onRendererScroll = () => {
+  if (!ticking) {
+    window.requestAnimationFrame(() => {
+      ticking = false
+      const position = rendererScrollPosition()
+      position !== null && scrollEditor(position)
+    })
+    ticking = true
   }
 }
 
@@ -138,48 +192,39 @@ onMounted(() => {
       return { suggestions }
     }
   })
-
-  let ticking = false
-  rendererContainer.value.addEventListener('scroll', () => {
-    if (!ticking) {
-      window.requestAnimationFrame(() => {
-        scrollEditor(
-          renderer.value.queryFirstLineVisibleIn(
-            rendererContainer.value.getBoundingClientRect()
-          )
-        )
-        ticking = false
-      })
-      ticking = true
-    }
-  })
 })
 </script>
 
-<style>
-@import '~purecss/build/pure-min.css';
-@import '~purecss/build/grids-responsive-min.css';
+<style lang="sass">
+$navbar-height: 1.5rem
+$navbar-padding-vertical: .25rem
+$navbar-padding-horizontal: .5rem
 
-* {
-  box-sizing: border-box;
-}
+@import "~bulma/sass/utilities/_all"
+@import "~bulma/sass/base/_all"
+@import "~bulma/sass/grid/columns"
+@import "~bulma/sass/elements/content"
+@import "~bulma/sass/elements/title"
+@import "~bulma/sass/components/navbar"
+@import "~bulma/sass/helpers/visibility"
 
+html
+  overflow-y: auto
 </style>
 
 <style scoped>
-
-.pure-menu-list {
-  float: right;
-}
-
 .editor-wrapper {
   width: 100%;
   height: 100%;
 }
 
+.rendered-pane {
+  overflow-y: auto;
+}
+
 .main {
   position: fixed;
-  top: 2.5em;
+  top: 3.5rem;
   bottom: 0;
   left: 0;
   right: 0;
@@ -188,18 +233,4 @@ onMounted(() => {
 .main > div {
   height: 100%;
 }
-
-.rendered {
-  overflow: auto;
-}
-
-.input, .rendered {
-  display: none;
-}
-
-.show-input .input, .show-both .input,
-.show-rendered .rendered, .show-both .rendered {
-  display: unset;
-}
-
 </style>

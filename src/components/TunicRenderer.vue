@@ -1,9 +1,9 @@
+<!--
+  Invariants expected in the methods below:
+    - `self` refs should always be DOM `Element`s, and
+    - `children` refs should always appear in a v-for and be `TunicRenderer`s.
+-->
 <template>
-  <!--
-    Invariants expected in the methods below:
-      - `self` refs should always be DOM `Element`s, and
-      - `children` refs should always appear in a v-for and be `TunicRenderer`s.
-  -->
   <component v-if="render.container" :is="render.container">
     <TunicRenderer v-for="(child, index) of node.children"
       :key="index" :node="child" :definitions="definitions" :ref="e => children[index] = e"
