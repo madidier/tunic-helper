@@ -1,7 +1,7 @@
 <template>
   <canvas ref="canvas" :width="size.width" :height="size.height"
-    @mousemove="e => !disabled && (highlight = { x: e.offsetX, y: e.offsetY })"
-    @mouseleave="highlight = null"
+    @mousemove="e => hover(e.offsetX, e.offsetY)"
+    @mouseleave="hoverLeave()"
     @click="e => !disabled && toggle(e.offsetX, e.offsetY)" />
 </template>
 
@@ -20,7 +20,7 @@ const props = defineProps({
     default: 1.5
   }
 })
-const emit = defineEmits(['change'])
+const emit = defineEmits(['change', 'hover'])
 
 const canvas = ref(null)
 const highlight = ref(null)
@@ -56,6 +56,19 @@ const toggle = (x, y) => {
   if (word !== props.word) {
     emit('change', word)
   }
+}
+
+const hover = (x, y) => {
+  const position = { x, y }
+  if (!props.disabled) {
+    highlight.value = position
+  }
+  emit('hover', runCanvas(ctx => Glyph.atPosition(ctx, props.word, position), false))
+}
+
+const hoverLeave = () => {
+  highlight.value = null
+  emit('hover', null)
 }
 
 // nextTick: make sure the DOM canvas' size is up to date before drawing

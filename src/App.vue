@@ -24,14 +24,16 @@
       </div>
     </div>
   </nav>
-  <div class="main columns">
-    <div v-if="currentView !== 'show-rendered'" class="input-pane column" :class="{ 'is-half': currentView === 'show-both' }">
+  <div class="main columns is-gapless">
+    <div v-show="currentView !== 'show-rendered'" class="input-pane column" :class="{ 'is-half': currentView === 'show-both' }">
       <div class="editor-wrapper">
         <MonacoEditor :value="code" @change="value => code = value" @scrollTopChange="line => scrollRenderer(line)" ref="editor" />
       </div>
     </div>
-    <div v-if="currentView !== 'show-input'" class="rendered-pane column content" ref="rendererContainer" @scroll="onRendererScroll">
-      <TunicRenderer :node="markdownAst" :definitions="definitions" ref="renderer" @change="applyUpdate" />
+    <div v-show="currentView !== 'show-input'" class="rendered-pane column content" ref="rendererContainer" @scroll="onRendererScroll">
+      <div>
+        <TunicRenderer :node="markdownAst" :definitions="definitions" ref="renderer" @change="applyUpdate" @settingsChange="applySettingsChange" />
+      </div>
     </div>
   </div>
 </template>
@@ -97,6 +99,10 @@ const definitions = computed(() => {
 
 const applyUpdate = e => {
   editor.value.applyUpdate({ position: e.position, value: '`' + e.value + '`' })
+}
+
+const applySettingsChange = e => {
+  editor.value.applyUpdate({ position: e.position, value: '```json\n' + JSON.stringify(e.value, null, 2) + '\n```' })
 }
 
 const showInput = () => {
@@ -203,34 +209,40 @@ $navbar-padding-horizontal: .5rem
 @import "~bulma/sass/utilities/_all"
 @import "~bulma/sass/base/_all"
 @import "~bulma/sass/grid/columns"
+@import "~bulma/sass/elements/box"
+@import "~bulma/sass/elements/button"
 @import "~bulma/sass/elements/content"
-@import "~bulma/sass/elements/title"
+@import "~bulma/sass/components/dropdown"
+@import "~bulma/sass/components/message"
 @import "~bulma/sass/components/navbar"
+@import "~bulma/sass/form/shared"
+@import "~bulma/sass/form/input-textarea"
+@import "~bulma/sass/form/checkbox-radio"
+@import "~bulma/sass/form/tools"
 @import "~bulma/sass/helpers/visibility"
 
 html
   overflow-y: auto
 </style>
 
-<style scoped>
-.editor-wrapper {
-  width: 100%;
-  height: 100%;
-}
+<style lang="sass" scoped>
+.editor-wrapper
+  width: 100%
+  height: 100%
 
-.rendered-pane {
-  overflow-y: auto;
-}
+.rendered-pane
+  overflow-y: auto
 
-.main {
-  position: fixed;
-  top: 3.5rem;
-  bottom: 0;
-  left: 0;
-  right: 0;
-}
+.rendered-pane > div
+  margin: 0 1rem
 
-.main > div {
-  height: 100%;
-}
+.main
+  position: fixed
+  top: 3.5rem
+  bottom: 0
+  left: 0
+  right: 0
+
+.main > div
+  height: 100%
 </style>

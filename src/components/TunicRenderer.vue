@@ -7,36 +7,46 @@
   <component v-if="render.container" :is="render.container">
     <TunicRenderer v-for="(child, index) of node.children"
       :key="index" :node="child" :definitions="definitions" :ref="e => children[index] = e"
-      @change="forwardUpdate" />
+      @change="forwardUpdate" @settingsChange="forwardSettingsChange" />
   </component>
   <component v-else-if="render.single" :is="render.single" ref="self" />
   <span v-else-if="render.text" ref="self">{{ render.text }}</span>
   <TunicRenderer v-else-if="render.container === ''" v-for="(child, index) of node.children"
     :key="index" :node="child" :definitions="definitions" :ref="e => children[index] = e"
-    @change="forwardUpdate" />
+    @change="forwardUpdate" @settingsChange="forwardSettingsChange" />
   <span v-else-if="render.glyphs" ref="self" tabindex="0"
     @blur="focus = false" @focus="focus = true">
-    <!-- the :key attribute keeps click events from misfiring when clicking on a word to focus it.
-         it forces Vue.js to recreate a new DOM canvas so that the mousedown and mouseup events happen on distinct elements -->
-    <TunicWord :word="render.glyphs" :scale="focus ? 2 : 1" :disabled="!focus" :key="focus ? 'focused-word' : 'blured-word'"
-      @change="updateWord"
-      />
+    <TunicWord v-if="focus" :word="render.glyphs" :scale="2" @change="updateWord" />
+    <div v-else class="dropdown is-hoverable">
+      <TunicWord class="dropdown-trigger" :word="render.glyphs" :scale="1" disabled @hover="e => tooltip = (e || {}).code" />
+      <div class="dropdown-menu">
+        <div class="dropdown-content">
+          <div class="dropdown-item">
+            {{ tooltip }}
+          </div>
+        </div>
+      </div>
+    </div>
   </span>
   <span class="known" v-else-if="render.known" @focus="onKnownFocus" ref="self" tabindex="0">{{ render.known }}</span>
   <p v-else-if="render.defn" ref="self">
     <TunicWord :word="render.defn" disabled :scale="1" />: {{ render.value }}
   </p>
   <pre v-else-if="render.code" ref="self">{{ node.value }}</pre>
+  <div v-else-if="render.settings" class="box" ref="self">
+    <SettingsEditor :settings="render.settings" @change='settingsChanged' />
+  </div>
   <span v-else-if="render.warn" class="warn" ref="self">{{ render.warn }}</span>
 </template>
 
 <script setup>
 import { ref, computed, nextTick } from 'vue'
 import TunicWord from './TunicWord.vue'
+import SettingsEditor from './SettingsEditor.vue'
 
 /* global defineProps, defineEmits */
 const props = defineProps(['node', 'definitions'])
-const emit = defineEmits(['change'])
+const emit = defineEmits(['change', 'settingsChange'])
 
 const self = ref(null)
 // This should be an array managed by Vue but I seem to have found a bug
@@ -52,6 +62,8 @@ const onKnownFocus = () => {
     }
   })
 }
+
+const tooltip = ref('')
 
 const render = computed(() => {
   // See https://github.com/syntax-tree/mdast
@@ -91,7 +103,17 @@ const render = computed(() => {
       return { text: props.node.value }
 
     case 'code':
-      return { code: true }
+      if (props.node.lang === 'json') {
+        try {
+          const content = props.node.value.trim()
+          return { settings: content ? JSON.parse(content) : {} }
+        } catch (e) {
+          console.log(e)
+          return { warn: `Parse error in settings: ${e.message}` }
+        }
+      } else {
+        return { code: true }
+      }
 
     case 'emphasis':
       return { container: 'em' }
@@ -119,10 +141,20 @@ const render = computed(() => {
 const updateWord = value => emit('change', { position: props.node.position, value })
 const forwardUpdate = e => emit('change', e)
 
+const settingsChanged = settings => {
+  emit('settingsChange', {
+    position: props.node.position,
+    value: settings
+  })
+}
+const forwardSettingsChange = e => emit('settingsChange', e)
+
+const hasChildren = () => !!props.node.children
+
 const scrollToLine = line => {
   if (self.value) {
     self.value.scrollIntoView()
-  } else {
+  } else if (hasChildren()) {
     // Assume ast nodes are ordered in a strictly ascending order
     for (let i = 0; i < props.node.children.length; ++i) {
       // First node whose end is past the target line gets selected
@@ -139,7 +171,7 @@ const scrollToLine = line => {
 const queryFirstLineVisibleIn = rect => {
   if (self.value) {
     return props.node.position.start.line
-  } else {
+  } else if (hasChildren()) {
     for (let i = 0; i < props.node.children.length; ++i) {
       const child = children.value[i]
       if (child.isVisibleInRect(rect)) {
@@ -158,7 +190,7 @@ const isVisibleInRect = rect => {
     // care if the element is not visible because it is past the end of
     // the viewport.
     return selfRect.bottom > rect.top
-  } else {
+  } else if (hasChildren()) {
     for (let i = 0; i < props.node.children.length; ++i) {
       if (children.value[i].isVisibleInRect(rect)) {
         return true

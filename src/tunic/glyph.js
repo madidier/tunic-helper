@@ -52,7 +52,33 @@ export const draw = (ctx, word, { highlight } = {}) => {
   ctx.stroke(wordGrouping(glyphCount(word)))
 }
 
-export const getMask = (ctx, word, position) => {
+export const atPosition = (ctx, word, position) => {
+  ctx.save()
+  try {
+    for (const [code, index] of wu.enumerate(glyphCodes(word))) {
+      if (ctx.isPointInPath(glyphRect, position.x, position.y)) {
+        return { code: encode(code), index }
+      }
+      ctx.translate(WIDTH, 0)
+    }
+  } finally {
+    ctx.restore()
+  }
+}
+
+export const toggle = (ctx, word, position) => {
+  const mask = getMask(ctx, word, position)
+  if (isEmpty(mask)) return word
+  const maskHasInactiveComponents = wu
+    .zip(glyphCodes(word), glyphCodes(mask))
+    .some(([wordCode, maskCode]) => (wordCode & maskCode) !== maskCode)
+
+  return maskHasInactiveComponents
+    ? union(word, mask)
+    : subtract(word, mask)
+}
+
+const getMask = (ctx, word, position) => {
   ctx.save()
   ctx.lineCap = 'round'
   ctx.lineWidth += EXTRA_MATCH_WIDTH
@@ -69,23 +95,22 @@ export const getMask = (ctx, word, position) => {
   return resultArr.join('')
 }
 
-export const toggle = (ctx, word, position) => {
-  const mask = getMask(ctx, word, position)
-  if (/^A*$/.test(mask)) return word
-  const maskHasInactiveComponents = wu
-    .zip(glyphCodes(word), glyphCodes(mask))
-    .some(([wordCode, maskCode]) => (wordCode & maskCode) !== maskCode)
+export const isEmpty = a => /^A*$/.test(a)
 
-  if (maskHasInactiveComponents) {
-    return wu.zip(glyphCodes(word), glyphCodes(mask))
-      .map(([wordCode, maskCode]) => encode(wordCode | maskCode))
-      .toArray().join('')
-  } else {
-    return wu.zip(glyphCodes(word), glyphCodes(mask))
-      .map(([wordCode, maskCode]) => encode(wordCode & ~maskCode))
-      .toArray().join('')
-  }
-}
+export const union = (a, b) =>
+  wu.zip(glyphCodes(a), glyphCodes(b))
+    .map(([x, y]) => encode(x | y))
+    .toArray().join('')
+
+export const subtract = (a, b) =>
+  wu.zip(glyphCodes(a), glyphCodes(b))
+    .map(([x, y]) => encode(x & ~y))
+    .toArray().join('')
+
+export const intersect = (a, b) =>
+  wu.zip(glyphCodes(a), glyphCodes(b))
+    .map(([x, y]) => encode(x & y))
+    .toArray().join('')
 
 export const wordSize = word => ({
   width: glyphCount(word) * WIDTH,
@@ -110,6 +135,12 @@ const glyphComponents = [
     return path
   })()
 ]
+
+const glyphRect = (() => {
+  const path = new Path2D()
+  path.rect(0, 0, WIDTH, HEIGHT)
+  return path
+})()
 
 const wordGrouping = n => {
   const path = new Path2D()
