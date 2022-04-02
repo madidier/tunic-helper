@@ -36,14 +36,14 @@ export const EMPTY = {
 export const compile = ({ masks, parts }) => {
   const glyphs = {}
   const mnemonics = {}
-  for (const part of parts) {
+  for (const part of parts || []) {
     glyphs[part.glyph] = {
       ...part,
       mnemonic: part.mnemonic || '=' + part.glyph
     }
     mnemonics[part.mnemonic] = part.glyph
   }
-  return { masks, glyphs, mnemonics }
+  return { masks: masks || [], glyphs, mnemonics }
 }
 
 export const maskIndex = (glyph, masks) => {
@@ -83,6 +83,7 @@ export const decompose = (glyph, composition) => {
       description: (part && part.description) || 'unknown'
     })
   }
+  return result
 }
 
 export const compose = (phrase, composition) => {

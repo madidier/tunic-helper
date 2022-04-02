@@ -4,31 +4,33 @@
     - `children` refs should always appear in a v-for and be `TunicRenderer`s.
 -->
 <template>
-  <component v-if="render.container" :is="render.container">
+  <component v-if="render.container" :is="render.container" :href="render.href" :title="render.title" :target="render.target">
     <TunicRenderer v-for="(child, index) of node.children"
-      :key="index" :node="child" :definitions="definitions" :ref="e => children[index] = e"
+      :key="index" :node="child" :settings="settings" :ref="e => children[index] = e"
       @change="forwardUpdate" @settingsChange="forwardSettingsChange" />
   </component>
   <component v-else-if="render.single" :is="render.single" ref="self" />
   <span v-else-if="render.text" ref="self">{{ render.text }}</span>
   <TunicRenderer v-else-if="render.container === ''" v-for="(child, index) of node.children"
-    :key="index" :node="child" :definitions="definitions" :ref="e => children[index] = e"
+    :key="index" :node="child" :settings="settings" :ref="e => children[index] = e"
     @change="forwardUpdate" @settingsChange="forwardSettingsChange" />
-  <span v-else-if="render.glyphs" ref="self" tabindex="0"
-    @blur="focus = false" @focus="focus = true">
-    <TunicWord v-if="focus" :word="render.glyphs" :scale="2" @change="updateWord" />
-    <div v-else class="dropdown is-hoverable">
-      <TunicWord class="dropdown-trigger" :word="render.glyphs" :scale="1" disabled @hover="e => tooltip = (e || {}).code" />
-      <div class="dropdown-menu">
-        <div class="dropdown-content">
-          <div class="dropdown-item">
-            {{ tooltip }}
-          </div>
+  <div v-else-if="render.glyphs" ref="self" class="dropdown" :class="{ 'is-hoverable': !render.asKnown }">
+    <span class="dropdown-trigger" :class="{ 'known': render.asKnown }" tabindex="0" @blur="focus = false" @focus="focus = true">
+      <TunicWord v-if="focus" :word="render.glyphs" :scale="2" @change="updateWord" @hover="onHover" />
+      <template v-else-if="render.asKnown">{{ render.asKnown }}</template>
+      <TunicWord v-else :word="render.glyphs" :scale="1" @hover="onHover" disabled />
+    </span>
+    <div class="dropdown-menu">
+      <div class="dropdown-content">
+        <div v-for="(comp, compIndex) in glyphComponents" :key="compIndex" class="dropdown-item">
+          <TunicWord :word="comp.glyph" :scale=".6" disabled /> <b>{{ comp.mnemonic }}</b> <em>{{ comp.description }}</em>
+        </div>
+        <div class="dropdown-item">
+          <b>{{ render.glyphs }}</b>
         </div>
       </div>
     </div>
-  </span>
-  <span class="known" v-else-if="render.known" @focus="onKnownFocus" ref="self" tabindex="0">{{ render.known }}</span>
+  </div>
   <p v-else-if="render.defn" ref="self">
     <TunicWord :word="render.defn" disabled :scale="1" />: {{ render.value }}
   </p>
@@ -40,12 +42,14 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
+import { decompose, readWord } from '../tunic/composition'
+import * as Glyph from '../tunic/glyph'
 import TunicWord from './TunicWord.vue'
 import SettingsEditor from './SettingsEditor.vue'
 
 /* global defineProps, defineEmits */
-const props = defineProps(['node', 'definitions'])
+const props = defineProps(['node', 'settings'])
 const emit = defineEmits(['change', 'settingsChange'])
 
 const self = ref(null)
@@ -54,23 +58,22 @@ const self = ref(null)
 const children = ref({})
 
 const focus = ref(false)
-const onKnownFocus = () => {
-  focus.value = true
-  nextTick(() => {
-    if (self.value) {
-      self.value.focus()
-    }
-  })
-}
+const hoverGlyph = ref('')
 
-const tooltip = ref('')
+const onHover = e => {
+  if (e && e.code) {
+    hoverGlyph.value = e.code
+  }
+}
 
 const render = computed(() => {
   // See https://github.com/syntax-tree/mdast
   switch (props.node.type) {
     case 'root':
-    case 'link': // Just skip links at least for now
       return { container: '' }
+
+    case 'link': // Just skip links at least for now
+      return { container: 'a', href: props.node.url, title: props.node.title, target: '_blank' }
 
     case 'paragraph':
       return { container: 'p' }
@@ -103,12 +106,11 @@ const render = computed(() => {
       return { text: props.node.value }
 
     case 'code':
-      if (props.node.lang === 'json') {
+      if (props.node.lang === 'settings') {
         try {
           const content = props.node.value.trim()
           return { settings: content ? JSON.parse(content) : {} }
         } catch (e) {
-          console.log(e)
           return { warn: `Parse error in settings: ${e.message}` }
         }
       } else {
@@ -122,21 +124,29 @@ const render = computed(() => {
       return { container: 'strong' }
 
     case 'inlineCode': {
-      const glyphs = props.node.value
-      const known = !focus.value && props.definitions[glyphs]
-      return known ? { known } : { glyphs }
+      const glyphs = readWord(props.node.value, props.settings)
+      return {
+        glyphs,
+        asKnown: !focus.value && props.settings.showTranslations && props.settings.definitions[glyphs]
+      }
     }
 
     case 'break':
       return { single: 'br' }
 
     case 'definition':
-      return { defn: props.node.label, value: props.node.url }
+      return props.settings.showDefinitions
+        ? { defn: readWord(props.node.label, props.settings), value: props.node.url }
+        : {}
 
     default:
       return { warn: `Unsupported content (${props.node.type})` }
   }
 })
+
+const glyphComponents = computed(() =>
+  decompose(hoverGlyph.value || Glyph.EMPTY_GLYPH, props.settings)
+)
 
 const updateWord = value => emit('change', { position: props.node.position, value })
 const forwardUpdate = e => emit('change', e)

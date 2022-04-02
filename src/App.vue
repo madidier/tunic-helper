@@ -32,7 +32,10 @@
     </div>
     <div v-show="currentView !== 'show-input'" class="rendered-pane column content" ref="rendererContainer" @scroll="onRendererScroll">
       <div>
-        <TunicRenderer :node="markdownAst" :definitions="definitions" ref="renderer" @change="applyUpdate" @settingsChange="applySettingsChange" />
+        <TunicRenderer ref="renderer"
+          :node="markdownAst" :settings="settings"
+          @change="applyUpdate" @settingsChange="applySettingsChange"
+          />
       </div>
     </div>
   </div>
@@ -44,6 +47,8 @@ import MonacoEditor from './components/MonacoEditor.vue'
 import TunicRenderer from './components/TunicRenderer.vue'
 import { remark } from 'remark'
 import { visit } from 'unist-util-visit'
+import find from 'unist-util-find'
+import * as Composition from './tunic/composition'
 import * as monaco from 'monaco-editor'
 
 // prevent synchronized scrolls from getting into a feedback loop
@@ -67,14 +72,16 @@ const code = ref(localStorage.getItem(LOCAL_STORAGE_CODE_KEY) || [
   'Try it here: `Tm` `V4Qc` `iu` `DkLos/` (it\'s probably gibberish)',
   'Once you\'ve defined and memorized a Tunic word, you may type it faster by using the code editor\' completion feature (try typing "foo", then enter or tab):',
   'Content is automatically saved in your browser local storage as you type. I would still advise you to make backups.',
-  '# You can have titles',
-  '## Subtitles',
-  '### Sub-subtitles and so on...',
-  '*   You may use...',
-  '*   ...lists',
+  '# This is a [Markdown](https://en.wikipedia.org/wiki/Markdown) subset',
+  '## You can have titles',
+  '### Subtitles',
+  '#### Sub-subtitles and so on...',
+  '- You may use...',
+  '- ...lists',
   'And have stuff in *italics*, **bold**, ***or both***',
   'You may use a horizontal separator:',
   '***',
+  'Once you are comfortable with the basics and want to use the more advanced features of this tool, read [this](https://gist.github.com/madidier/d39adaddc80eeb54925c1c19d09234e7).',
   'And if you ever want to see this text again, just delete all the text and refresh the page to start over.',
   ''
 ].join('\n\n'))
@@ -89,12 +96,28 @@ const renderer = ref()
 
 const markdownAst = computed(() => remark().parse(code.value))
 
-const definitions = computed(() => {
-  const result = {}
+const settings = computed(() => {
+  const settingsNode = find(markdownAst.value, { type: 'code', lang: 'settings' })
+  const inputSettings = (() => {
+    try {
+      return settingsNode ? JSON.parse(settingsNode.value) : {}
+    } catch (e) {
+      // Do nothing; the parsing error will be displayed in the rendered pane
+      return {}
+    }
+  })()
+  const compiledSettings = Composition.compile(inputSettings)
+  const definitions = {}
   visit(markdownAst.value, 'definition', node => {
-    result[node.label] = node.url
+    definitions[Composition.readWord(node.label, compiledSettings)] = node.url
   })
-  return result
+  return {
+    showTranslations: true,
+    showDefinitions: true,
+    definitions,
+    ...inputSettings,
+    ...compiledSettings
+  }
 })
 
 const applyUpdate = e => {
@@ -102,7 +125,7 @@ const applyUpdate = e => {
 }
 
 const applySettingsChange = e => {
-  editor.value.applyUpdate({ position: e.position, value: '```json\n' + JSON.stringify(e.value, null, 2) + '\n```' })
+  editor.value.applyUpdate({ position: e.position, value: '```settings\n' + JSON.stringify(e.value, null, 2) + '\n```' })
 }
 
 const showInput = () => {
@@ -187,9 +210,9 @@ onMounted(() => {
         ...word
       }
       const suggestions = []
-      for (const glyph of Object.keys(definitions.value)) {
+      for (const glyph of Object.keys(settings.value.definitions)) {
         suggestions.push({
-          label: definitions.value[glyph],
+          label: settings.value.definitions[glyph],
           kind: monaco.languages.CompletionItemKind.Function,
           insertText: '`' + glyph + '`',
           range

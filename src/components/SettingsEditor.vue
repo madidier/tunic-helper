@@ -1,8 +1,11 @@
 <template>
   <h4>General</h4>
-  <p>
+  <p class="options">
     <label class="checkbox">
-      <input type="checkbox" :checked="showTranslation" @change="e => setShowTranslation(e)"> Show translation
+      <input type="checkbox" :checked="showTranslations" @change="e => setShowTranslations(e)"> Show translations
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" :checked="showDefinitions" @change="e => setShowDefinitions(e)"> Show definitions
     </label>
   </p>
   <h4>Glyph Masks</h4>
@@ -95,16 +98,29 @@ import TunicWord from './TunicWord.vue'
 const props = defineProps(['settings'])
 const emit = defineEmits(['change'])
 
-const showTranslation = computed(() =>
-  'showTranslation' in props.settings
-    ? props.settings.showTranslation
+const showTranslations = computed(() =>
+  'showTranslations' in props.settings
+    ? props.settings.showTranslations
     : true
 )
 
-const setShowTranslation = value => {
+const showDefinitions = computed(() =>
+  'showDefinitions' in props.settings
+    ? props.settings.showDefinitions
+    : true
+)
+
+const setShowTranslations = value => {
   emit('change', {
     ...props.settings,
-    showTranslation: value.target.checked
+    showTranslations: value.target.checked
+  })
+}
+
+const setShowDefinitions = value => {
+  emit('change', {
+    ...props.settings,
+    showDefinitions: value.target.checked
   })
 }
 
@@ -173,6 +189,11 @@ const sortParts = () => {
 </script>
 
 <style lang="sass" scoped>
+.options
+  display: flex
+  flex-wrap: wrap
+  gap: 1em
+
 .masks
   display: flex
   flex-wrap: wrap
@@ -185,7 +206,7 @@ const sortParts = () => {
   // padding is 2 (TunicWord.vue)
   // max scale used is 2
   display: grid
-  grid-template-columns: ((23px + 4px) * 2) 1fr
+  grid-template-columns: repeat(auto-fill, ((23px + 4px) * 2) minmax(20em, 1fr))
   // grid-auto-rows: ((35px + 4px) * 2)
   place-items: center
 

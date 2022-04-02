@@ -6132,6 +6132,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lodash.iteratee@npm:^4.5.0":
+  version: 4.7.0
+  resolution: "lodash.iteratee@npm:4.7.0"
+  checksum: 900e8f9c2f37361aa50f880139e92a00a5c1a000a45c78f00f64f83591090ccd9644800d6869fc563ef47907d9914ec19e871433d7be8e272b7b0516b44910d7
+  languageName: node
+  linkType: hard
+
 "lodash.kebabcase@npm:^4.1.1":
   version: 4.1.1
   resolution: "lodash.kebabcase@npm:4.1.1"
@@ -9252,6 +9259,7 @@ __metadata:
     remark: ^14.0.2
     sass: ^1.49.10
     sass-loader: ^12.6.0
+    unist-util-find: ^1.0.2
     unist-util-visit: ^4.1.0
     vue: ^3.2.13
     wu: ^2.1.0
@@ -9374,6 +9382,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"unist-util-find@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "unist-util-find@npm:1.0.2"
+  dependencies:
+    lodash.iteratee: ^4.5.0
+    unist-util-visit: ^1.1.0
+  checksum: d13b92e65a94f8f8280ddddb030456e080d64179c6594e028f0a22c8c86b98744fc2336dfa322c817d7f356b42e46eab13321f7824e4529a5b51e538566587a5
+  languageName: node
+  linkType: hard
+
+"unist-util-is@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "unist-util-is@npm:3.0.0"
+  checksum: d24a5dd80c670f763b2ae608651cf062317456aa81be51f66f45cbd7d440a2ab18356e4f48aeac6b5e3d391c69d3c3452ade5fe5aa9574bec4a2de0b10122ed5
+  languageName: node
+  linkType: hard
+
 "unist-util-is@npm:^5.0.0":
   version: 5.1.1
   resolution: "unist-util-is@npm:5.1.1"
@@ -9390,6 +9415,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"unist-util-visit-parents@npm:^2.0.0":
+  version: 2.1.2
+  resolution: "unist-util-visit-parents@npm:2.1.2"
+  dependencies:
+    unist-util-is: ^3.0.0
+  checksum: 048edbb590a8c4bc0043eec9f50d3fe76faa58f1ac663a7e6dee5e895ddd0ce8bc52f2cfe2e633849fa93671e8de021070667acb1518e3d40220768c7f70a3d3
+  languageName: node
+  linkType: hard
+
 "unist-util-visit-parents@npm:^5.0.0":
   version: 5.1.0
   resolution: "unist-util-visit-parents@npm:5.1.0"
@@ -9397,6 +9431,15 @@ __metadata:
     "@types/unist": ^2.0.0
     unist-util-is: ^5.0.0
   checksum: 7c413dbb3dfcb679109fa8f0965d9abf117c3c53fa7b8823f68cac0ea53adbe98c1ce954d36c034e086c966b48b1d44d42c85f7bf6b42a032f728ac338929513
+  languageName: node
+  linkType: hard
+
+"unist-util-visit@npm:^1.1.0":
+  version: 1.4.1
+  resolution: "unist-util-visit@npm:1.4.1"
+  dependencies:
+    unist-util-visit-parents: ^2.0.0
+  checksum: e9395205b6908c8d0fe71bc44e65d89d4781d1bb2d453a33cb67ed4124bad0b89d6b1d526ebaecb82a7c48e211bdf6f24351449b8cc115327b345f4617c18728
   languageName: node
   linkType: hard
 
