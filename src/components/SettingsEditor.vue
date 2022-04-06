@@ -48,7 +48,7 @@
     <button class="button is-ghost" @click="addPart">Add</button>
     <button v-show="settings.parts && settings.parts.length > 1" class="button is-ghost" @click="sortParts">Sort</button>
   </p>
-  <div class="message">
+  <div class="message is-info">
     <div class="message-header">
       <p>Glyph Composition</p>
     </div>

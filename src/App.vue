@@ -1,14 +1,9 @@
 <template>
-  <nav class="navbar">
+  <nav class="navbar is-primary">
     <div class="navbar-brand">
       <div class="navbar-item">Glyph Helper</div>
-      <a role="button" class="navbar-burger" :class="{ 'is-active': burgerActive }" @click="burgerActive = !burgerActive">
-        <span aria-hidden="true"></span>
-        <span aria-hidden="true"></span>
-        <span aria-hidden="true"></span>
-      </a>
     </div>
-    <div class="navbar-menu" :class="{ 'is-active': burgerActive }">
+    <div class="navbar-menu">
       <div class="navbar-start">
       </div>
       <div class="navbar-end">
@@ -24,19 +19,17 @@
       </div>
     </div>
   </nav>
-  <div class="main columns is-gapless">
-    <div v-show="currentView !== 'show-rendered'" class="input-pane column" :class="{ 'is-half': currentView === 'show-both' }">
-      <div class="editor-wrapper">
-        <MonacoEditor :value="code" @change="value => code = value" @scrollTopChange="line => scrollRenderer(line)" ref="editor" />
-      </div>
+  <div v-show="currentView !== 'show-rendered'" class="input-pane" :class="{ 'fullwidth': currentView !== 'show-both' }">
+    <div class="editor-wrapper">
+      <MonacoEditor :value="code" @change="value => code = value" @scrollTopChange="line => scrollRenderer(line)" ref="editor" />
     </div>
-    <div v-show="currentView !== 'show-input'" class="rendered-pane column content" ref="rendererContainer" @scroll="onRendererScroll">
-      <div>
-        <TunicRenderer ref="renderer"
-          :node="markdownAst" :settings="settings"
-          @change="applyUpdate" @settingsChange="applySettingsChange"
-          />
-      </div>
+  </div>
+  <div v-show="currentView !== 'show-input'" class="rendered-pane" :class="{ 'fullwidth': currentView !== 'show-both' }" ref="rendererContainer" @scroll="onRendererScroll">
+    <div class="content">
+      <TunicRenderer ref="renderer"
+        :node="markdownAst" :settings="settings"
+        @change="applyUpdate" @settingsChange="applySettingsChange"
+        />
     </div>
   </div>
 </template>
@@ -88,7 +81,6 @@ const code = ref(localStorage.getItem(LOCAL_STORAGE_CODE_KEY) || [
 watch(code, () => localStorage.setItem(LOCAL_STORAGE_CODE_KEY, code.value))
 
 const currentView = ref('show-both')
-const burgerActive = ref(false)
 
 const editor = ref()
 const rendererContainer = ref()
@@ -225,13 +217,17 @@ onMounted(() => {
 </script>
 
 <style lang="sass">
+$primary: #0057b7
+$info: #ffd700
+
 $navbar-height: 1.5rem
 $navbar-padding-vertical: .25rem
 $navbar-padding-horizontal: .5rem
+$navbar-tab-active-border-bottom-color: #ffd700
+$navbar-breakpoint: 0
 
 @import "~bulma/sass/utilities/_all"
 @import "~bulma/sass/base/_all"
-@import "~bulma/sass/grid/columns"
 @import "~bulma/sass/elements/box"
 @import "~bulma/sass/elements/button"
 @import "~bulma/sass/elements/content"
@@ -244,28 +240,38 @@ $navbar-padding-horizontal: .5rem
 @import "~bulma/sass/form/tools"
 @import "~bulma/sass/helpers/visibility"
 
+.foobar
+  color: $primary-light
+
 html
   overflow-y: auto
-</style>
 
-<style lang="sass" scoped>
+#app
+  display: grid
+  grid: "nav nav" auto "left right" 1fr / 1fr 1fr
+  width: 100vw
+  height: 100vh
+
+.navbar
+  grid-area: nav
+
+.fullwidth
+  grid-column: span 2
+
+@include mobile
+  #app > div
+    grid-column: span 2
+
+.content
+  margin: .5rem 1rem
+
 .editor-wrapper
   width: 100%
   height: 100%
 
+.input-pane
+  min-width: 0 // Editor won't shrink without this
+
 .rendered-pane
   overflow-y: auto
-
-.rendered-pane > div
-  margin: 0 1rem
-
-.main
-  position: fixed
-  top: 3.5rem
-  bottom: 0
-  left: 0
-  right: 0
-
-.main > div
-  height: 100%
 </style>
